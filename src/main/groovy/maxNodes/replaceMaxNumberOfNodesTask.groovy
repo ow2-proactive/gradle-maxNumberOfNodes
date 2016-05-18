@@ -5,7 +5,7 @@ import org.gradle.api.tasks.TaskAction
 
 public class replaceMaxNumberOfNodesTask extends TransformationTask {
 
-    def maxNumberOfNodes
+    def maxNumberOfNodes = -1
 
     replaceMaxNumberOfNodesTask() {
         dependsOn(project.classes)

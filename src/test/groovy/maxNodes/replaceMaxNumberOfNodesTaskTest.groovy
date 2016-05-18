@@ -5,105 +5,111 @@ import javassist.CtClass
 import org.apache.commons.io.FileUtils
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
-import org.junit.Ignore
 import org.junit.Test
 
 import static org.testng.AssertJUnit.assertEquals
 
 public class replaceMaxNumberOfNodesTaskTest {
 
-    @Ignore
     @Test
-    public void shouldReplaceMaxOfNumberOfNodes() throws Exception {
+    public void testThatMaxOfNumberOfNodesIsReplace() throws Exception {
         Project project = ProjectBuilder.builder().build()
         project.apply(plugin: 'java')
 
-        project.task("replaceMaxNumberOfNodes", type: replaceMaxNumberOfNodesTask.class) {
-            maxNumberOfNodes = '40L'
+
+        project.task("maxNodes", type: replaceMaxNumberOfNodesTask.class) {
+             // maxNumberOfNodes = '40L'
         }
 
-        createSerializableJavaSource(project)
-        createExceptionJavaSource(project)
+        createRMCoreClass(project)
 
         project.compileJava.execute()
 
-        assertEquals(-1L, getCompiledSerialzableClass(project).getField(MaxNumberOfNodesTransformer.MAXNUMBEROFNODES_FIELD_NAME).getConstantValue())
+        assertEquals(-1L, getCompiledRMCoreClassInPackage(project).getField(MaxNumberOfNodesTransformer.MAXNUMBEROFNODES_FIELD_NAME).getConstantValue())
 
         project.compileJava.execute()
         project.replaceMaxNumberOfNodes.execute()
 
-        assertEquals(40L, getCompiledSerialzableClass(project).getField(MaxNumberOfNodesTransformer.MAXNUMBEROFNODES_FIELD_NAME).getConstantValue())
+        assertEquals(40L, getCompiledRMCoreClassInPackage(project).getField(MaxNumberOfNodesTransformer.MAXNUMBEROFNODES_FIELD_NAME).getConstantValue())
     }
 
-
-
-
-    private void shouldUpdateSerialVersionUIDField(boolean overwrt, boolean forcethrow, long expectedUIDSerializable, long expectedUIDException) {
+    @Test
+    public void testSameClassInDifferentPackageIsNotChanged() throws Exception {
         Project project = ProjectBuilder.builder().build()
         project.apply(plugin: 'java')
 
-        project.task("maxNumberOfNodes", type: replaceMaxNumberOfNodesTask.class) {
-            serialver = '42L'
-            overwrite = overwrt
-            forceUIDOnException = forcethrow
+        project.task("replaceMaxNumberOfNodes") {
+            // maxNumberOfNodes = '40L'
         }
 
-        createSerializableJavaSourceWithSerialVersionUID(project)
-        createExceptionJavaSourceWithSerialVersionUID(project)
+        createRMCoreWithoutPackage(project)
 
         project.compileJava.execute()
-        project.serialver.execute()
 
-        assertEquals(expectedUIDSerializable, getCompiledSerialzableClass(project).getField("serialVersionUID").getConstantValue())
-        assertEquals(expectedUIDException, getCompiledExceptionClass(project).getField("serialVersionUID").getConstantValue())
+        assertEquals(-1L, getCompiledRMCoreClassWithoutPackage(project).getField(MaxNumberOfNodesTransformer.MAXNUMBEROFNODES_FIELD_NAME).getConstantValue())
+
+        project.compileJava.execute()
+        project.replaceMaxNumberOfNodes.execute()
+
+        assertEquals(-1L, getCompiledRMCoreClassWithoutPackage(project).getField(MaxNumberOfNodesTransformer.MAXNUMBEROFNODES_FIELD_NAME).getConstantValue())
+    }
+
+    @Test(expected = javassist.NotFoundException.class)
+    public void testPropertyIsNotAddedToClass() throws Exception {
+        Project project = ProjectBuilder.builder().build()
+        project.apply(plugin: 'java')
+
+        project.task("replaceMaxNumberOfNodes") {
+            // maxNumberOfNodes = '40L'
+        }
+
+        createRMCoreWithoutField(project)
+        project.compileJava.execute()
+        project.replaceMaxNumberOfNodes.execute()
+
+        // This will fail because no property was added.
+        assertEquals(-1L, getCompiledRMCoreClassWithoutPackage(project).getField(MaxNumberOfNodesTransformer.MAXNUMBEROFNODES_FIELD_NAME).getConstantValue())
     }
 
 
-    private void createSerializableJavaSource(Project project) {
+    private void createRMCoreWithoutField(Project project) {
         FileUtils.forceMkdir(project.sourceSets.main.java.srcDirs[0])
 
-        new File(project.sourceSets.main.java.srcDirs[0], 'SerializableClass.java') <<
-                'import java.io.Serializable;\n' +
-                'public class SerializableClass implements Serializable {\n' +
+        new File(project.sourceSets.main.java.srcDirs[0], 'RMCore.java') <<
+                'public class RMCore  {\n' +
                 '}'
     }
 
-    private void createExceptionJavaSource(Project project) {
+    private void createRMCoreWithoutPackage(Project project) {
         FileUtils.forceMkdir(project.sourceSets.main.java.srcDirs[0])
 
-        new File(project.sourceSets.main.java.srcDirs[0], 'ExceptionClass.java') <<
-                'public class ExceptionClass extends Exception {\n' +
+        new File(project.sourceSets.main.java.srcDirs[0], 'RMCore.java') <<
+                'public class RMCore  {\n' +
+                'private final static long MAXIMUM_NUMBER_OF_NODES = -1;\n' +
                 '}'
     }
 
-    private void createSerializableJavaSourceWithSerialVersionUID(Project project) {
+    private void createRMCoreClass(Project project) {
         FileUtils.forceMkdir(project.sourceSets.main.java.srcDirs[0])
 
-        new File(project.sourceSets.main.java.srcDirs[0], 'SerializableClass.java') <<
-                'import java.io.Serializable;\n' +
-                'public class SerializableClass implements Serializable {\n' +
-                'private static final long serialVersionUID = 7L; \n' +
+        new File(project.sourceSets.main.java.srcDirs[0], 'RMCore.java') <<
+                'package org.ow2.proactive.resourcemanager.core;\n' +
+                'public class RMCore  {\n' +
+                'private final static long MAXIMUM_NUMBER_OF_NODES = -1;\n' +
                 '}'
     }
 
-    private void createExceptionJavaSourceWithSerialVersionUID(Project project) {
-        FileUtils.forceMkdir(project.sourceSets.main.java.srcDirs[0])
 
-        new File(project.sourceSets.main.java.srcDirs[0], 'ExceptionClass.java') <<
-                'public class ExceptionClass extends Exception {\n' +
-                'private static final long serialVersionUID = 7L; \n' +
-                '}'
-    }
-
-    private CtClass getCompiledSerialzableClass(Project project) {
+    private CtClass getCompiledRMCoreClassWithoutPackage(Project project) {
         ClassPool pool = ClassPool.getDefault();
-        CtClass ctClass = pool.makeClass(new FileInputStream(new File(project.sourceSets.main.output[0], 'SerializableClass.class')));
+        CtClass ctClass = pool.makeClass(new FileInputStream(new File(project.sourceSets.main.output[0], 'RMCore.class')));
         ctClass
     }
 
-    private CtClass getCompiledExceptionClass(Project project) {
+    private CtClass getCompiledRMCoreClassInPackage(Project project) {
         ClassPool pool = ClassPool.getDefault();
-        CtClass ctClass = pool.makeClass(new FileInputStream(new File(project.sourceSets.main.output[0], 'ExceptionClass.class')));
+        CtClass ctClass = pool.makeClass(new FileInputStream(new File(project.sourceSets.main.output[0], '/org/ow2/proactive/resourcemanager/core/RMCore.class')));
         ctClass
     }
+
 }
