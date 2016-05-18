@@ -32,7 +32,7 @@
  *
  *  * $$ACTIVEEON_INITIAL_DEV$$
  */
-package serialver.tests;
+package maxNodes.tests;
 
 import java.io.Serializable;
 

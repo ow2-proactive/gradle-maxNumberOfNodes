@@ -1,4 +1,4 @@
-# serialver-gradle
+# maxNodes-gradle
 
 A gradle task to insert/replace the `serialVersionUID` field in
 `Serializable` classes.

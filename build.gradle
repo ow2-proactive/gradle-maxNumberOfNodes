@@ -2,8 +2,17 @@ apply plugin: 'java'
 apply plugin: 'groovy'
 apply plugin: 'maven'
 
-group 'org.ow2.proactive'
-version '2.2'
+// Configure the maven repository deployment
+install {
+    repositories.mavenInstaller {
+        // Set the version
+        pom.version = 0.1
+        // Set the group/namespace for the maven repository deployment.
+        pom.groupId = 'org.ow2.proactive'
+        // Give the artifact a 'base name' (The version is added to the 'base name')
+        pom.artifactId = 'gradle-max-nodes-number'
+    }
+}
 
 repositories {
     jcenter()
