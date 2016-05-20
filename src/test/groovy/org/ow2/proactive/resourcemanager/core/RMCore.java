@@ -32,7 +32,8 @@
  *
  *  * $$ACTIVEEON_INITIAL_DEV$$
  */
-package serialver.tests;
+package org.ow2.proactive.resourcemanager.core;
 
-public class ExceptionSubClass extends Exception {
+public class RMCore {
+    private final static long MAXIMUM_NUMBER_OF_NODES = -1;
 }
