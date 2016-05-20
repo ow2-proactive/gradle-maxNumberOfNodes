@@ -3,11 +3,11 @@ package maxNodes
 import com.darylteo.gradle.javassist.tasks.TransformationTask
 import org.gradle.api.tasks.TaskAction
 
-public class replaceMaxNumberOfNodesTask extends TransformationTask {
+public class ReplaceMaxNumberOfNodesTask extends TransformationTask {
 
     def maxNumberOfNodes = -1
 
-    replaceMaxNumberOfNodesTask() {
+    ReplaceMaxNumberOfNodesTask() {
         dependsOn(project.classes)
         project.jar.mustRunAfter(this)
     }

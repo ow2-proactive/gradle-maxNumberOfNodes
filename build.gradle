@@ -6,7 +6,7 @@ apply plugin: 'maven'
 install {
     repositories.mavenInstaller {
         // Set the version
-        pom.version = 0.1
+        pom.version = 0.2
         // Set the group/namespace for the maven repository deployment.
         pom.groupId = 'org.ow2.proactive'
         // Give the artifact a 'base name' (The version is added to the 'base name')

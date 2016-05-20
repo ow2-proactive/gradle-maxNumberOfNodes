@@ -35,8 +35,10 @@
 package maxNodes;
 
 import javassist.CannotCompileException;
+import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtField;
+import javassist.Modifier;
 import javassist.NotFoundException;
 import javassist.build.JavassistBuildException;
 
@@ -45,7 +47,7 @@ import com.darylteo.gradle.javassist.transformers.ClassTransformer;
 
 public class MaxNumberOfNodesTransformer extends ClassTransformer {
 
-    public static final String MAXNUMBEROFNODES_FIELD_NAME = "MAXIMUM_NUMBER_OF_NODES";
+    public static final String MAXNUMBEROFNODES_FIELD_NAME = "maximumNumberOfNodes";
 
     private long maxNumberOfNodesValue;
 
@@ -70,13 +72,11 @@ public class MaxNumberOfNodesTransformer extends ClassTransformer {
         clazz.removeField(clazz.getField(MAXNUMBEROFNODES_FIELD_NAME));
     }
 
-    private void addMaxNumberOfNodes(CtClass clazz) throws CannotCompileException {
-        CtField field = new CtField(CtClass.longType, MAXNUMBEROFNODES_FIELD_NAME, clazz);
+    private void addMaxNumberOfNodes(CtClass clazz) throws CannotCompileException, NotFoundException {
+        CtField field = new CtField(ClassPool.getDefault().get("java.lang.Long"), MAXNUMBEROFNODES_FIELD_NAME, clazz);
+        field.setModifiers( javassist.Modifier.PRIVATE | Modifier.STATIC );
 
-        field.setModifiers(javassist.Modifier.STATIC | javassist.Modifier.PRIVATE |
-                javassist.Modifier.FINAL);
-
-        clazz.addField(field, CtField.Initializer.constant(maxNumberOfNodesValue));
+        clazz.addField(field, CtField.Initializer.byExpr("Long.valueOf("+maxNumberOfNodesValue+"L)"));
     }
 
     @Override

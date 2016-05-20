@@ -7,51 +7,84 @@ import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.Test
 
+import java.lang.reflect.Field
+
 import static org.testng.AssertJUnit.assertEquals
 
 public class replaceMaxNumberOfNodesTaskTest {
 
     @Test
-    public void testThatMaxOfNumberOfNodesIsReplace() throws Exception {
-        Project project = ProjectBuilder.builder().build()
-        project.apply(plugin: 'java')
+    public void testThatMaxOfNumberOfNodesIsNullWithoutBeingReplace() throws Exception {
+        Project projectVariableNotReplaced = ProjectBuilder.builder().build()
+        projectVariableNotReplaced.apply(plugin: 'java')
 
+        createRMCoreClass(projectVariableNotReplaced)
 
-        project.task("maxNodes", type: replaceMaxNumberOfNodesTask.class) {
-             // maxNumberOfNodes = '40L'
+        projectVariableNotReplaced.compileJava.execute()
+
+        assertThatMaxNumberOfNodesIs(null, getCompiledRMCoreClassInPackage(projectVariableNotReplaced))
+    }
+
+    @Test
+    public void testThatMaxOfNumberOfNodesIsReplacedStringValue() throws Exception {
+        Project projectVariableReplaced = ProjectBuilder.builder().build()
+        projectVariableReplaced.apply(plugin: 'java')
+        projectVariableReplaced.task("replaceMaxNumberOfNodes", type: ReplaceMaxNumberOfNodesTask.class) {
+            maxNumberOfNodes = '40L'
         }
 
-        createRMCoreClass(project)
+        createRMCoreClass(projectVariableReplaced)
 
-        project.compileJava.execute()
+        projectVariableReplaced.compileJava.execute()
+        projectVariableReplaced.replaceMaxNumberOfNodes.execute()
 
-        assertEquals(-1L, getCompiledRMCoreClassInPackage(project).getField(MaxNumberOfNodesTransformer.MAXNUMBEROFNODES_FIELD_NAME).getConstantValue())
+        assertThatMaxNumberOfNodesIs(40L, getCompiledRMCoreClassInPackage(projectVariableReplaced))
+    }
 
-        project.compileJava.execute()
-        project.replaceMaxNumberOfNodes.execute()
+    private void assertThatMaxNumberOfNodesIs(Long expectedValue, CtClass forClass) {
+        assertEquals(expectedValue, getMaxNumberOfNodesField(forClass).get(null))
+    }
 
-        assertEquals(40L, getCompiledRMCoreClassInPackage(project).getField(MaxNumberOfNodesTransformer.MAXNUMBEROFNODES_FIELD_NAME).getConstantValue())
+    private Field getMaxNumberOfNodesField(CtClass RMCoreClass) {
+        ClassLoader classLoader = new URLClassLoader()
+        Field maxNumberOfNodesField = RMCoreClass.toClass(classLoader, null).getDeclaredField(MaxNumberOfNodesTransformer.MAXNUMBEROFNODES_FIELD_NAME)
+        maxNumberOfNodesField.setAccessible(true)
+
+        RMCoreClass.defrost()
+
+        return maxNumberOfNodesField
+    }
+
+    @Test
+    public void testThatMaxOfNumberOfNodesIsReplacedIntValue() throws Exception {
+        Project projectVariableReplaced = ProjectBuilder.builder().build()
+        projectVariableReplaced.apply(plugin: 'java')
+        projectVariableReplaced.task("replaceMaxNumberOfNodes", type: ReplaceMaxNumberOfNodesTask.class) {
+            maxNumberOfNodes = 40
+        }
+
+        createRMCoreClass(projectVariableReplaced)
+
+        projectVariableReplaced.compileJava.execute()
+        projectVariableReplaced.replaceMaxNumberOfNodes.execute()
+
+        assertThatMaxNumberOfNodesIs(40L, getCompiledRMCoreClassInPackage(projectVariableReplaced))
     }
 
     @Test
     public void testSameClassInDifferentPackageIsNotChanged() throws Exception {
-        Project project = ProjectBuilder.builder().build()
-        project.apply(plugin: 'java')
-
-        project.task("replaceMaxNumberOfNodes") {
-            // maxNumberOfNodes = '40L'
+        Project projectVariableReplaced = ProjectBuilder.builder().build()
+        projectVariableReplaced.apply(plugin: 'java')
+        projectVariableReplaced.task("replaceMaxNumberOfNodes", type: ReplaceMaxNumberOfNodesTask.class) {
+            maxNumberOfNodes = 40
         }
 
-        createRMCoreWithoutPackage(project)
+        createRMCoreWithoutPackage(projectVariableReplaced)
 
-        project.compileJava.execute()
+        projectVariableReplaced.compileJava.execute()
+        projectVariableReplaced.replaceMaxNumberOfNodes.execute()
 
-        assertEquals(-1L, getCompiledRMCoreClassWithoutPackage(project).getField(MaxNumberOfNodesTransformer.MAXNUMBEROFNODES_FIELD_NAME).getConstantValue())
-
-        project.compileJava.execute()
-        project.replaceMaxNumberOfNodes.execute()
-
-        assertEquals(-1L, getCompiledRMCoreClassWithoutPackage(project).getField(MaxNumberOfNodesTransformer.MAXNUMBEROFNODES_FIELD_NAME).getConstantValue())
+        assertThatMaxNumberOfNodesIs(null, getCompiledRMCoreClassWithoutPackage(projectVariableReplaced))
     }
 
     @Test(expected = javassist.NotFoundException.class)
@@ -85,7 +118,7 @@ public class replaceMaxNumberOfNodesTaskTest {
 
         new File(project.sourceSets.main.java.srcDirs[0], 'RMCore.java') <<
                 'public class RMCore  {\n' +
-                'private final static long MAXIMUM_NUMBER_OF_NODES = -1;\n' +
+                'private static Long maximumNumberOfNodes;\n' +
                 '}'
     }
 
@@ -95,7 +128,7 @@ public class replaceMaxNumberOfNodesTaskTest {
         new File(project.sourceSets.main.java.srcDirs[0], 'RMCore.java') <<
                 'package org.ow2.proactive.resourcemanager.core;\n' +
                 'public class RMCore  {\n' +
-                'private final static long MAXIMUM_NUMBER_OF_NODES = -1;\n' +
+                'private static Long maximumNumberOfNodes;\n' +
                 '}'
     }
 
@@ -107,6 +140,7 @@ public class replaceMaxNumberOfNodesTaskTest {
     }
 
     private CtClass getCompiledRMCoreClassInPackage(Project project) {
+        System.out.println(project.sourceSets.main.output[0].toString())
         ClassPool pool = ClassPool.getDefault();
         CtClass ctClass = pool.makeClass(new FileInputStream(new File(project.sourceSets.main.output[0], '/org/ow2/proactive/resourcemanager/core/RMCore.class')));
         ctClass
