@@ -2,6 +2,7 @@ apply plugin: 'java'
 apply plugin: 'groovy'
 apply plugin: 'maven'
 
+
 buildscript {
     repositories {
         maven {
@@ -22,15 +23,19 @@ buildscript {
 
 apply from: "$rootDir/gradle/ext/coding-format.gradle"
 
+sourceCompatibility = JavaVersion.VERSION_1_7
+targetCompatibility = JavaVersion.VERSION_1_7
+
+
 // Configure the maven repository deployment
 install {
     repositories.mavenInstaller {
         // Set the version
-        pom.version = 0.2
+        pom.version = project.version
         // Set the group/namespace for the maven repository deployment.
-        pom.groupId = 'org.ow2.proactive'
+        pom.groupId = project.groupId
         // Give the artifact a 'base name' (The version is added to the 'base name')
-        pom.artifactId = 'gradle-max-nodes-number'
+        pom.artifactId = project.artifactId
     }
 }
 
@@ -43,9 +48,19 @@ dependencies {
     compile 'com.darylteo.gradle:javassist-plugin:0.4.1'
 }
 
+// Upload the archives to the nexus repository. For execution, that needs to have
+// the username and password set in the command line by -DnexusUsername=[username]
+// and -DnexusPassword=[password]
 uploadArchives {
     repositories {
         mavenDeployer {
+            // Set the version
+            pom.version = project.version
+            // Set the group/namespace for the maven repository deployment.
+            pom.groupId = project.groupId
+            // Give the artifact a 'base name' (The version is added to the 'base name')
+            pom.artifactId = project.artifactId
+
             snapshotRepository(url: "http://repository.activeeon.com/content/repositories/snapshots/") {
                 authentication(userName: "${System.getProperty('nexusUsername')}",
                         password: "${System.getProperty('nexusPassword')}")
