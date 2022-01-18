@@ -40,7 +40,7 @@ install {
 }
 
 repositories {
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {
